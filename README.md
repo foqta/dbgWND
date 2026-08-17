@@ -1,22 +1,23 @@
 # dbgWND
 
-> ⚠️ Proyecto en desarrollo. Es un proyecto personal para aprender C++ y la API de Windows a bajo nivel — el código y las funcionalidades van cambiando según voy aprendiendo, no es una herramienta terminada ni pulida.
+> ⚠️ Esto está a medio hacer. Lo estoy usando para aprender C++ y la API de Windows desde cero, así que el código cambia según voy entendiendo cosas nuevas — no esperes nada pulido todavía.
 
-Programa de consola en C++ (Win32 API) que analiza la ventana activa del escritorio: título, PID y uso de memoria del proceso. Sin librerías externas.
+Un programa de consola que mira qué ventana tienes activa en cada momento y te dice cosas de ella: título, PID y cuánta memoria está usando el proceso. Todo con la API de Windows a pelo, sin librerías externas de por medio.
 
 ## Qué hace
 
-Cada segundo, el programa:
-1. Detecta cuál es la ventana activa (`GetForegroundWindow`)
-2. Muestra su título
-3. Obtiene el PID del proceso dueño de esa ventana
-4. Abre el proceso y consulta su consumo de memoria (working set y memoria privada)
+Cada segundo el programa:
+1. Mira qué ventana tienes en primer plano (`GetForegroundWindow`)
+2. Saca su título
+3. Saca el PID del proceso que la ha creado
+4. Abre ese proceso y le pregunta cuánta memoria está usando (working set y memoria privada)
+5. Saca la dirección base de su módulo principal y la muestra en hexadecimal
 
 ## Requisitos
 
-- Windows (usa la API Win32, no es multiplataforma)
-- Compilador con soporte de `<windows.h>` y `<psapi.h>` (MSVC o MinGW)
-- Si compilas con MinGW: enlazar `-luser32 -lpsapi`
+- Windows, porque es Win32 puro y no tiene nada de multiplataforma
+- Un compilador que entienda `<windows.h>` y `<psapi.h>` (MSVC o MinGW me sirven)
+- Con MinGW hay que enlazar `-luser32 -lpsapi` a mano
 
 ## Compilar
 
@@ -30,19 +31,19 @@ g++ main.cpp -o dbgWND.exe -luser32 -lpsapi
 ./dbgWND.exe
 ```
 
-Cambia de ventana activa mientras el programa corre y verás cómo actualiza los datos cada segundo.
+Déjalo corriendo y ve cambiando de ventana — cada segundo actualiza los datos con la que tengas activa en ese momento.
 
-## Aprendizajes / conceptos tocados
+## Cosas que he ido aprendiendo con esto
 
-- Punteros, direcciones de memoria (`&`, `*`) y por qué existen
-- Reserva y liberación manual de memoria (`new[]` / `delete[]`) y fugas de memoria
-- `wchar_t` vs `char`, y por qué Windows usa UTF-16 internamente
-- El patrón "función que rellena una struct/buffer que tú le pasas por dirección", repetido en toda la Win32 API
-- `reinterpret_cast` para compatibilidad entre structs extendidas (`_EX`) y sus versiones básicas
-- Diferencia entre distintos contadores de memoria de un proceso (working set vs memoria privada) y por qué no siempre coinciden con el Administrador de Tareas
+- Qué son los punteros y las direcciones de memoria (`&`, `*`) de verdad, más allá de la teoría
+- Por qué hay que liberar a mano lo que reservas con `new[]` (y cómo se nota cuando no lo haces)
+- La diferencia entre `wchar_t` y `char`, y por qué Windows va todo en UTF-16 por dentro
+- Un patrón que se repite todo el rato en la Win32 API: le pasas a la función una caja vacía por dirección y ella la rellena
+- `reinterpret_cast` para cuando una función pide una struct básica pero tú le pasas su versión extendida
+- Que "memoria usada por un proceso" no es un solo número — el Administrador de Tareas y `GetProcessMemoryInfo` no siempre cuentan lo mismo
 
-## Roadmap
+## Lo que falta
 
-- [ ] Dirección base del módulo principal del proceso (`EnumProcessModules` + `GetModuleInformation`)
-- [ ] Menú interactivo en terminal (TUI) — de momento aparcado, se hará como v2 sin librerías externas tipo FTXUI
-- [ ] Overlay visual con borde sobre la ventana + card de info (ImGui + DirectX 11)
+- [ ] Sacar la dirección base del módulo principal (`EnumProcessModules` + `GetModuleInformation`)
+- [ ] Un menú interactivo en terminal — de momento aparcado, caerá en la v2 sin tirar de librerías tipo FTXUI
+- [ ] El overlay de verdad: borde sobre la ventana + card con la info encima (ImGui + DirectX 11)
