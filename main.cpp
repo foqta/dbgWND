@@ -5,6 +5,38 @@
 #include <psapi.h>
 #include <processthreadsapi.h>
 
+
+/*
+typedef union _ULARGE_INTEGER {
+	struct {
+		DWORD LowPart;
+		DWORD HighPart;
+	} DUMMYSTRUCTNAME;
+	struct {
+		DWORD LowPart;
+		DWORD HighPart;
+	} u;
+	ULONGLONG QuadPart;
+} ULARGE_INTEGER;
+
+
+typedef struct _FILETIME {
+	DWORD dwLowDateTime;
+	DWORD dwHighDateTime;
+} FILETIME, *PFILETIME, *LPFILETIME;
+*/
+
+
+ULONGLONG fileTime_a_QuadWord(FILETIME * hora) { // el puntero de un filetime
+	ULARGE_INTEGER uli; //uli tiene dos partes, una high y otra low las dos de 32 bits (igual que filetime) 
+	//ularge_integer es una union no una struct, por eso tiene quadpart tienes la manera de ver low y high en 64 bits  
+	uli.LowPart = hora->dwLowDateTime;
+	uli.HighPart = hora->dwHighDateTime; // => (*hora).dwHighDateTime
+	return uli.QuadPart;
+
+
+}
+
 int main() {
 	// = wchar_t -> wide character 2 bytes
 
@@ -36,14 +68,63 @@ int main() {
 		FILETIME horacreacionproceso, horasalidaproceso, kerneltiempoproceso, usertiempoproceso;
 
 		GetProcessTimes(proceso, &horacreacionproceso, &horasalidaproceso, &kerneltiempoproceso, &usertiempoproceso);
-		std::cout << "=================================================" << std::endl;
-		std::cout << "Nombre de ventana: "; std::wcout << buffer << std::endl;
-		std::cout << "PID:" << pid << std::endl;
-		std::cout << "=================================================" << std::endl;
+			FILETIME tiempoactual;
+			GetSystemTimeAsFileTime(&tiempoactual); // hora actual
+
+			ULONGLONG inicio = fileTime_a_QuadWord(&horacreacionproceso);
+			ULONGLONG ahora = fileTime_a_QuadWord(&tiempoactual);
+			ULONGLONG inicioKernel = fileTime_a_QuadWord(&kerneltiempoproceso);
+			ULONGLONG tiempopasado = ahora - inicio; // ticks - un tick = 100 nanoseg. -> seg
+
+
+			
+			DWORD prioridad = GetPriorityClass(proceso);
+
+		
+		double segundos = static_cast<double>(tiempopasado) / 10000000.0; // (1 segundo = 10,000,000 de intervalos)
+		double horas = static_cast<double>(segundos) / 3600;
+		double segundosKernel = static_cast<double>(inicioKernel) / 10000000.0;
+		std::cout << "====[ DATOS PROGRAMA ]=======================" << std::endl;
+		std::cout << "[1] Nombre de ventana: "; std::wcout << buffer << std::endl;
+		std::cout << "[2] PID:" << pid << std::endl;
+		std::cout << "====[ INFORMACION PROGRAMA ]=================" << std::endl;
 		std::cout << "Direccion Base: 0x" << std::hex << dirBase << std::dec << std::endl; // imprimes texto normal, luego cambias el modo de impresion a hexadecimal, imprimes el valor de dirBase en hex y luego cambias otra vez a decimal
 		std::cout << "RAM: " << infoMemoria.WorkingSetSize / 1024 / 1024 << " MB" << std::endl;
-		std::cout << "Ruta ejecutable: ";
-		std::wcout << bufferRutaArchivo << std::endl;
+		std::cout << "Ruta ejecutable: "; std::wcout << bufferRutaArchivo << std::endl;
+		std::cout << "Tiempo ejecucion: " << segundos << " seg. | " << horas << " horas [*] Tiempo Kernel: " << segundosKernel <<std::endl;
+		std::cout << "Prioridad: 0x";
+		switch (prioridad) {
+		case 32:
+			std::cout << std::hex << prioridad << std::dec << " | Prioridad Normal | ";
+			break;
+		case 256:
+			std::cout << std::hex << prioridad << std::dec << " | Prioridad en Tiempo Real | ";
+			break;
+		case 64:
+			std::cout << std::hex << prioridad << std::dec << " | En reposo | ";
+			break;
+		case 128: 
+			std::cout << std::hex << prioridad << std::dec << " | Prioridad Alta | ";
+			break;
+		case 16384:
+			std::cout << std::hex << prioridad << std::dec << " | Prioridad por debajo de lo Normal | ";
+			break;
+		case 32768:
+			std::cout << std::hex << prioridad << std::dec << " | Prioridad por encima de lo normal | ";
+			break;
+		default:
+			std::cout << std::hex << prioridad << std::dec << " | Desconocida | ";
+			break;
+
+
+
+
+
+		}
+		std::cout << std::endl;
+
+
+		
 
 		
 		
